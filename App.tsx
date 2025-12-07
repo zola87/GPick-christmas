@@ -24,6 +24,7 @@ const App: React.FC = () => {
   // Game State
   const [nickname, setNickname] = useState<string>('');
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [playedSockIds, setPlayedSockIds] = useState<number[]>([]); // Track opened socks
   const [prize, setPrize] = useState<PrizeConfig | null>(null);
   const [prizesList, setPrizesList] = useState<PrizeConfig[]>([]);
   
@@ -89,8 +90,9 @@ const App: React.FC = () => {
     setIsMusicPlaying(!isMusicPlaying);
   };
 
-  const handleSockSelect = () => {
-    if (hasPlayed) return;
+  const handleSockSelect = (id: number) => {
+    // Prevent clicking if game is paused (modal open) or sock already opened
+    if (hasPlayed || playedSockIds.includes(id)) return;
 
     // 1. 執行抽獎邏輯 (會自動過濾無庫存獎項)
     const currentCount = getDrawCount();
@@ -108,14 +110,25 @@ const App: React.FC = () => {
     // 4. 紀錄到模擬後台 (含描述)
     saveRecord(nickname, resultPrize);
 
-    // 5. 顯示結果 (音效在 ResultModal 裡觸發)
+    // 5. 紀錄這隻襪子已開過
+    setPlayedSockIds(prev => [...prev, id]);
+
+    // 6. 顯示結果 (音效在 ResultModal 裡觸發)
     setPrize(resultPrize);
     setHasPlayed(true);
+  };
+
+  const handlePlayAgain = () => {
+    // 重置所有襪子狀態，讓客人面對全新的 5 隻襪子
+    setPlayedSockIds([]); 
+    setHasPlayed(false);
+    setPrize(null);
   };
 
   const handleReset = () => {
     setHasPlayed(false);
     setPrize(null);
+    setPlayedSockIds([]); // Reset opened socks history
     setShowAdmin(false);
     alert("畫面已重整，可以重新抽獎了！");
   };
@@ -282,18 +295,29 @@ const App: React.FC = () => {
       {/* Main Game Area */}
       <main className="relative z-10 container mx-auto px-4 pb-20">
         
-        {/* Socks Grid */}
-        <div className="flex justify-center mb-8">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-6 justify-items-center max-w-2xl">
-            {[0, 1, 2, 3, 4].map((id) => (
-                <div key={id} className={id === 4 ? "col-span-2 md:col-span-1" : ""}>
+        {/* Socks Grid - Optimized for Mobile (2 on top, 3 on bottom) */}
+        <div className="flex flex-col items-center gap-2 md:gap-6 mb-8 mt-4">
+            {/* First Row: 2 socks */}
+            <div className="flex justify-center gap-6 w-full">
+                {[0, 1].map((id) => (
                     <Sock 
+                        key={id}
                         id={id} 
-                        onSelect={handleSockSelect} 
-                        disabled={hasPlayed} 
+                        onSelect={() => handleSockSelect(id)} 
+                        disabled={hasPlayed || playedSockIds.includes(id)} 
                     />
-                </div>
-            ))}
+                ))}
+            </div>
+            {/* Second Row: 3 socks */}
+            <div className="flex justify-center gap-4 w-full">
+                {[2, 3, 4].map((id) => (
+                    <Sock 
+                        key={id}
+                        id={id} 
+                        onSelect={() => handleSockSelect(id)} 
+                        disabled={hasPlayed || playedSockIds.includes(id)} 
+                    />
+                ))}
             </div>
         </div>
 
@@ -404,7 +428,8 @@ const App: React.FC = () => {
       {/* Modal */}
       <ResultModal 
         prize={prize} 
-        onClose={() => { /* User manually closes via button */ }} 
+        onClose={() => setPrize(null)} 
+        onPlayAgain={handlePlayAgain}
         nickname={nickname}
       />
       

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { PrizeConfig } from '../types';
 import { ASSETS } from '../constants';
@@ -7,10 +8,11 @@ import GiftBox from './GiftBox';
 interface ResultModalProps {
   prize: PrizeConfig | null;
   onClose: () => void;
+  onPlayAgain: () => void;
   nickname: string;
 }
 
-const ResultModal: React.FC<ResultModalProps> = ({ prize, onClose, nickname }) => {
+const ResultModal: React.FC<ResultModalProps> = ({ prize, onClose, onPlayAgain, nickname }) => {
   const [show, setShow] = useState(false);
   
   useEffect(() => {
@@ -75,13 +77,21 @@ const ResultModal: React.FC<ResultModalProps> = ({ prize, onClose, nickname }) =
             <p className="text-gray-700 font-medium leading-relaxed">{prize.description}</p>
           </div>
 
-          <div className="pt-2">
-            <p className="text-xs text-gray-400 mb-3">請截圖此畫面，並回傳至官方 LINE</p>
+          <div className="pt-2 space-y-3">
+            <p className="text-xs text-gray-400">請截圖此畫面，並回傳至官方 LINE</p>
+            
             <button 
                 onClick={onClose}
                 className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <span>📸</span> 我已截圖，關閉視窗
+            </button>
+
+            <button 
+                onClick={onPlayAgain}
+                className="w-full bg-white text-red-600 border-2 border-red-200 font-bold py-3 px-6 rounded-full shadow-sm hover:bg-red-50 active:scale-95 transition-all text-sm"
+            >
+                🔄 還有機會？再抽一次
             </button>
           </div>
         </div>
