@@ -7,11 +7,10 @@ import { PrizeConfig, PrizeTier } from './types';
 export const UNLOCK_THRESHOLD = 50;
 
 // 資源連結 (Assets)
-// 使用 Wikimedia Commons Transcoded MP3 以確保最大相容性 (Safari/Chrome/iOS)
 export const ASSETS = {
-  // 背景音樂: We Wish You A Merry Christmas (US Air Force Band)
-  bgMusic: "https://upload.wikimedia.org/wikipedia/commons/transcoded/d/df/We_Wish_You_a_Merry_Christmas_-_US_Air_Force_Band_of_the_West.ogg/We_Wish_You_a_Merry_Christmas_-_US_Air_Force_Band_of_the_West.ogg.mp3",
-  // 中獎音效: Santa Ho Ho Ho
+  // 背景音樂: 使用者指定檔案 (請確保檔案位於 public 資料夾中)
+  bgMusic: "SPACETRAIN UNLIMITED - Christmas .mp3",
+  // 中獎音效: Santa Ho Ho Ho (Wikimedia Commons)
   winSound: "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/86/Santa_Claus_Ho_Ho_Ho.ogg/Santa_Claus_Ho_Ho_Ho.ogg.mp3"
 };
 
@@ -72,7 +71,7 @@ export const RULES_CONTENT = {
     { title: "回報登記", text: "將截圖回傳至「官方 LINE」並於結帳時主動提出，即可兌換。" },
   ],
   notices: [
-    { title: "參加門檻", text: "本次連線每滿 $1,000 (不含運) 即可獲得一次抽獎機會 (金額可累計)。" },
+    { title: "參加門檻", text: "本次連線每滿 $1,000 (不含運) 即可獲得一次抽獎機會 (可累計)。" },
     { title: "領獎規則", text: "獎品與購物金將隨本次連線商品一同寄出/折抵，若最後取消訂單或未達出貨門檻，視同放棄得獎資格。" },
     { title: "截圖為憑", text: "請務必保留中獎截圖，若無截圖證明，恕無法補發獎項。", highlight: true },
     { title: "其他說明", text: "GPICK 保有活動最終解釋與修改權利。" },

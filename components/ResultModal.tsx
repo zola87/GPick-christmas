@@ -23,6 +23,7 @@ const ResultModal: React.FC<ResultModalProps> = ({ prize, onClose, onPlayAgain, 
       // Play Santa Sound Effect
       try {
         const sfx = new Audio(ASSETS.winSound);
+        sfx.crossOrigin = "anonymous"; // Helps with CORS
         sfx.volume = 1.0;
         const playPromise = sfx.play();
         

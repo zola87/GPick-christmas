@@ -57,10 +57,19 @@ const App: React.FC = () => {
     const audio = new Audio(ASSETS.bgMusic);
     audio.loop = true;
     audio.volume = 0.5; 
+    // Removed crossOrigin for local file support
+    
+    // Add error listener
+    audio.addEventListener('error', (e) => {
+        console.warn("Audio load error:", e);
+        setIsMusicPlaying(false);
+    });
+
     audioRef.current = audio;
 
     return () => {
       audio.pause();
+      audio.src = ""; // Cleanup
     };
   }, []);
 
@@ -71,6 +80,10 @@ const App: React.FC = () => {
     if (audioRef.current) {
         // 先嘗試重置時間
         audioRef.current.currentTime = 0;
+        
+        // 強制預載
+        audioRef.current.load();
+
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise
