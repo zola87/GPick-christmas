@@ -51,7 +51,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStart }) => {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-[#D62828] to-[#A51C1C] hover:from-[#A51C1C] hover:to-[#D62828] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 group"
             >
               開始抽獎
               <span className="group-hover:translate-x-1 transition-transform">→</span>

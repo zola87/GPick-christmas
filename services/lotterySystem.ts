@@ -4,7 +4,7 @@ import { PrizeConfig, PrizeTier, PlayRecord } from '../types';
 
 const STORAGE_KEY_COUNT = 'gpick_draw_count';
 const STORAGE_KEY_RECORDS = 'gpick_draw_records';
-const STORAGE_KEY_PRIZES = 'gpick_prize_config_v3'; // Bump version for stock structure
+const STORAGE_KEY_PRIZES = 'gpick_prize_config_v4'; // Bump version for stock structure
 
 // --- 獎項配置邏輯 (可編輯) ---
 

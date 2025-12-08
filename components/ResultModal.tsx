@@ -137,7 +137,7 @@ const ResultModal: React.FC<ResultModalProps> = ({ prize, onClose, onPlayAgain, 
             
             <button 
                 onClick={onClose}
-                className="w-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-[#D62828] to-[#A51C1C] hover:from-[#A51C1C] hover:to-[#D62828] text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <span>📸</span> 我已截圖，關閉視窗
             </button>
