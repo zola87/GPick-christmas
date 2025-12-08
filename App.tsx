@@ -6,7 +6,6 @@ import RulesSection from './components/RulesSection';
 import ResultModal from './components/ResultModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import { PrizeConfig, PrizeTier } from './types';
-import { ASSETS } from './constants';
 import { 
   drawPrize, 
   getDrawCount, 
@@ -28,10 +27,6 @@ const App: React.FC = () => {
   const [prize, setPrize] = useState<PrizeConfig | null>(null);
   const [prizesList, setPrizesList] = useState<PrizeConfig[]>([]);
   
-  // Audio State
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   // Admin / Secret State
   const [debugCount, setDebugCount] = useState(0);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -52,55 +47,11 @@ const App: React.FC = () => {
     // Initialize
     setDebugCount(getDrawCount());
     setPrizesList(getActivePrizes());
-    
-    // Setup Audio
-    const audio = new Audio(ASSETS.bgMusic);
-    audio.loop = true;
-    audio.volume = 0.5; 
-    // Removed crossOrigin for local file support
-    
-    // Add error listener
-    audio.addEventListener('error', (e) => {
-        console.warn("Audio load error:", e);
-        setIsMusicPlaying(false);
-    });
-
-    audioRef.current = audio;
-
-    return () => {
-      audio.pause();
-      audio.src = ""; // Cleanup
-    };
   }, []);
 
   // Handle Nickname Submit & Start Game
   const handleStartGame = (name: string) => {
     setNickname(name);
-    // 重要：在使用者第一次互動(點擊開始)時，解鎖瀏覽器音訊並播放
-    if (audioRef.current) {
-        // 先嘗試重置時間
-        audioRef.current.currentTime = 0;
-        
-        // 強制預載
-        audioRef.current.load();
-
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => setIsMusicPlaying(true))
-            .catch(e => console.warn("Auto-play blocked, waiting for next interaction:", e));
-        }
-    }
-  };
-
-  const toggleMusic = () => {
-    if (!audioRef.current) return;
-    if (isMusicPlaying) {
-        audioRef.current.pause();
-    } else {
-        audioRef.current.play();
-    }
-    setIsMusicPlaying(!isMusicPlaying);
   };
 
   const handleSockSelect = (id: number) => {
@@ -239,15 +190,6 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden text-gray-900 bg-gradient-to-b from-red-700 to-green-900 selection:bg-yellow-300 selection:text-red-900 font-sans">
       <SnowEffect />
-
-      {/* Music Toggle */}
-      <button 
-        onClick={toggleMusic}
-        className="fixed top-4 right-4 z-50 bg-black/30 backdrop-blur-md text-white p-2 rounded-full border border-white/20 shadow-lg hover:bg-black/50 transition"
-        aria-label="Toggle Music"
-      >
-        {isMusicPlaying ? '🔊' : '🔇'}
-      </button>
 
       {/* Login Screen Overlay */}
       {!nickname && <WelcomeScreen onStart={handleStartGame} />}
