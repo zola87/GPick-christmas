@@ -49,6 +49,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStart }) => {
               {error && <p className="text-red-500 text-xs mt-2 ml-2 font-bold">{error}</p>}
             </div>
 
+            {/* Warning Message */}
+            <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-700 leading-tight text-left">
+              <span className="font-bold block mb-1">⚠️ 注意事項 (必讀)：</span>
+              請勿試抽！系統將以後台<span className="font-bold underline">第一筆紀錄</span>為準，重複參加或刷取之紀錄一律作廢無效。
+            </div>
+
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-[#D62828] to-[#A51C1C] hover:from-[#A51C1C] hover:to-[#D62828] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 group"

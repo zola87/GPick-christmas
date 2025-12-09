@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { RULES_CONTENT } from '../constants';
 
@@ -31,7 +32,7 @@ const RulesSection: React.FC = () => {
           {/* Notices */}
           <div className="bg-red-50 p-4 rounded-xl border border-red-100">
             <h3 className="font-bold text-red-800 mb-2">
-              ⚠️ 注意事項 (必讀)：
+              注意事項 (必讀)：
             </h3>
             <ul className="space-y-2 list-disc pl-4 marker:text-red-400">
               {RULES_CONTENT.notices.map((item, idx) => (
