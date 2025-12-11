@@ -7,83 +7,85 @@ import ResultModal from './components/ResultModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import { PrizeConfig, PrizeTier } from './types';
 import { 
-  drawPrize, 
+  performDraw, 
   getDrawCount, 
-  incrementDrawCount, 
-  resetDrawCount,
-  saveRecord,
-  exportRecordsToCSV,
-  getActivePrizes,
-  saveActivePrizes,
   resetPrizesToDefault,
-  deductStock
+  exportRecordsToCSV,
+  subscribeToPrizes,
+  saveActivePrizes
 } from './services/lotterySystem';
+import { isCloudEnabled } from './services/firebase';
 
 const App: React.FC = () => {
   // Game State
   const [nickname, setNickname] = useState<string>('');
   const [hasPlayed, setHasPlayed] = useState(false);
-  const [playedSockIds, setPlayedSockIds] = useState<number[]>([]); // Track opened socks
+  const [playedSockIds, setPlayedSockIds] = useState<number[]>([]); 
   const [prize, setPrize] = useState<PrizeConfig | null>(null);
   const [prizesList, setPrizesList] = useState<PrizeConfig[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false); // New: 處理中狀態
   
   // Admin / Secret State
   const [debugCount, setDebugCount] = useState(0);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [resetConfirm, setResetConfirm] = useState(false); // New state for reset confirmation button
+  const [resetConfirm, setResetConfirm] = useState(false); 
   
   // Custom Password Modal State
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [pwdInput, setPwdInput] = useState('');
   const [pwdError, setPwdError] = useState(false);
 
-  // 用來給點擊隱藏按鈕時的回饋 (閃爍)
   const [clickFeedback, setClickFeedback] = useState(false);
-  // 使用 Ref 來追蹤點擊次數，避免閉包問題
   const secretClicksRef = useRef(0);
   const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 初始化：訂閱獎項更新 (Realtime)
   useEffect(() => {
-    // Initialize
-    setDebugCount(getDrawCount());
-    setPrizesList(getActivePrizes());
+    // 這個 callback 會在第一次載入以及未來任何時候資料庫變動時被呼叫
+    const unsubscribe = subscribeToPrizes((updatedPrizes) => {
+      setPrizesList(updatedPrizes);
+    });
+    
+    // 取得當前次數 (用於後台顯示)
+    getDrawCount().then(c => setDebugCount(c));
+
+    return () => unsubscribe();
   }, []);
 
-  // Handle Nickname Submit & Start Game
   const handleStartGame = (name: string) => {
     setNickname(name);
   };
 
-  const handleSockSelect = (id: number) => {
-    // Prevent clicking if game is paused (modal open) or sock already opened
-    if (hasPlayed || playedSockIds.includes(id)) return;
+  const handleSockSelect = async (id: number) => {
+    // 加入 isProcessing 檢查，防止連點
+    if (hasPlayed || playedSockIds.includes(id) || isProcessing) return;
 
-    // 1. 執行抽獎邏輯 (會自動過濾無庫存獎項)
-    const currentCount = getDrawCount();
-    const resultPrize = drawPrize(currentCount);
+    setIsProcessing(true); // 開始 loading
 
-    // 2. 扣除庫存
-    deductStock(resultPrize.id);
-    // 立即更新 UI 的獎項列表以顯示最新庫存
-    setPrizesList(getActivePrizes());
+    try {
+      // 1. 執行抽獎邏輯 (Async: 可能需要等待網路)
+      const resultPrize = await performDraw(nickname);
 
-    // 3. 更新計數
-    const newCount = incrementDrawCount();
-    setDebugCount(newCount);
+      // 2. 更新計數顯示 (UI)
+      const newCount = await getDrawCount();
+      setDebugCount(newCount);
 
-    // 4. 紀錄到模擬後台 (含描述)
-    saveRecord(nickname, resultPrize);
+      // 3. 紀錄這隻襪子已開過
+      setPlayedSockIds(prev => [...prev, id]);
 
-    // 5. 紀錄這隻襪子已開過
-    setPlayedSockIds(prev => [...prev, id]);
+      // 4. 顯示結果
+      setPrize(resultPrize);
+      setHasPlayed(true);
 
-    // 6. 顯示結果 (音效在 ResultModal 裡觸發)
-    setPrize(resultPrize);
-    setHasPlayed(true);
+    } catch (e) {
+      console.error("Draw error:", e);
+      alert("網路連線錯誤，請重試");
+    } finally {
+      setIsProcessing(false); // 結束 loading
+    }
   };
 
   const handlePlayAgain = () => {
-    // 重置所有襪子狀態，讓客人面對全新的 5 隻襪子
     setPlayedSockIds([]); 
     setHasPlayed(false);
     setPrize(null);
@@ -92,23 +94,18 @@ const App: React.FC = () => {
   const handleReset = () => {
     setHasPlayed(false);
     setPrize(null);
-    setPlayedSockIds([]); // Reset opened socks history
+    setPlayedSockIds([]); 
     setShowAdmin(false);
-    alert("畫面已重整，可以重新抽獎了！");
+    alert("畫面已重整");
   };
 
-  // Improved Full Reset Logic with Force Reload
-  const handleFullReset = () => {
+  const handleFullReset = async () => {
     if (resetConfirm) {
-      // Confirmed
-      resetDrawCount();
-      resetPrizesToDefault();
-      alert("系統已重置成功！頁面將自動重新整理以確保資料生效。");
-      window.location.reload(); // Force browser reload to clear all states cleanly
+      await resetPrizesToDefault();
+      alert("系統已重置成功！(若是雲端模式，資料庫已清空)");
+      window.location.reload(); 
     } else {
-      // First click: Ask for confirmation
       setResetConfirm(true);
-      // Auto-reset confirmation state after 3 seconds if not clicked
       setTimeout(() => setResetConfirm(false), 3000);
     }
   };
@@ -116,22 +113,14 @@ const App: React.FC = () => {
   // --- Admin Logic ---
 
   const handleSecretClick = () => {
-    // Visual Feedback
     setClickFeedback(true);
     setTimeout(() => setClickFeedback(false), 150);
-
-    // Increment count
     secretClicksRef.current += 1;
-    
-    // Reset timer on click
     if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
-    
-    // Check threshold (3 clicks now for easier access)
     if (secretClicksRef.current >= 3) {
-        setShowPwdModal(true); // Open Custom Modal instead of window.prompt
+        setShowPwdModal(true); 
         secretClicksRef.current = 0;
     } else {
-        // Reset count if no clicks for 2 seconds
         clickTimeoutRef.current = setTimeout(() => {
             secretClicksRef.current = 0;
         }, 2000);
@@ -161,9 +150,9 @@ const App: React.FC = () => {
     setPrizesList(updated);
   };
 
-  const savePrizeConfig = () => {
-    saveActivePrizes(prizesList);
-    alert("獎項設定已儲存！");
+  const savePrizeConfig = async () => {
+    await saveActivePrizes(prizesList);
+    alert("獎項設定已儲存！(所有連線中的裝置都會同步更新)");
   };
 
   const addNewPrize = () => {
@@ -194,7 +183,7 @@ const App: React.FC = () => {
       {/* Login Screen Overlay */}
       {!nickname && <WelcomeScreen onStart={handleStartGame} />}
 
-      {/* Password Modal (Custom Replacement for window.prompt) */}
+      {/* Password Modal */}
       {showPwdModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-xs p-6 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
@@ -250,8 +239,18 @@ const App: React.FC = () => {
       {/* Main Game Area */}
       <main className="relative z-10 container mx-auto px-4 pb-20">
         
-        {/* Socks Grid - Optimized for Mobile (2 on top, 3 on bottom) */}
-        <div className="flex flex-col items-center gap-2 md:gap-6 mb-8 mt-4">
+        {/* Loading Overlay for Processing */}
+        {isProcessing && (
+           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+              <div className="bg-white px-6 py-4 rounded-full shadow-xl flex items-center gap-3 animate-pulse">
+                <span className="text-2xl">🎁</span>
+                <span className="font-bold text-red-600">正在拆禮物...</span>
+              </div>
+           </div>
+        )}
+
+        {/* Socks Grid */}
+        <div className={`flex flex-col items-center gap-2 md:gap-6 mb-8 mt-4 transition-opacity ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* First Row: 2 socks */}
             <div className="flex justify-center gap-6 w-full">
                 {[0, 1].map((id) => (
@@ -259,7 +258,7 @@ const App: React.FC = () => {
                         key={id}
                         id={id} 
                         onSelect={() => handleSockSelect(id)} 
-                        disabled={hasPlayed || playedSockIds.includes(id)} 
+                        disabled={hasPlayed || playedSockIds.includes(id) || isProcessing} 
                     />
                 ))}
             </div>
@@ -270,7 +269,7 @@ const App: React.FC = () => {
                         key={id}
                         id={id} 
                         onSelect={() => handleSockSelect(id)} 
-                        disabled={hasPlayed || playedSockIds.includes(id)} 
+                        disabled={hasPlayed || playedSockIds.includes(id) || isProcessing} 
                     />
                 ))}
             </div>
@@ -285,7 +284,12 @@ const App: React.FC = () => {
                 // --- Admin Panel UI ---
                 <div className="bg-white max-w-lg mx-auto rounded-lg p-6 text-left shadow-2xl mb-12 relative z-50 animate-in slide-in-from-bottom-5">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h3 className="font-bold text-red-800 text-lg">🔧 管理員後台</h3>
+                        <div className="flex items-center gap-2">
+                           <h3 className="font-bold text-red-800 text-lg">🔧 管理員後台</h3>
+                           <span className={`text-[10px] px-2 py-0.5 rounded-full ${isCloudEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {isCloudEnabled ? '🟢 雲端連線中' : '⚪ 本機模式'}
+                           </span>
+                        </div>
                         <button onClick={() => setShowAdmin(false)} className="text-gray-400 hover:text-gray-600">✕ 關閉</button>
                     </div>
 
@@ -315,7 +319,7 @@ const App: React.FC = () => {
                         {/* Prize Editor Section */}
                         <div className="bg-gray-50 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-2">
-                                <h4 className="font-bold text-gray-700">🎁 獎項設定</h4>
+                                <h4 className="font-bold text-gray-700">🎁 獎項設定 (同步中)</h4>
                                 <button onClick={addNewPrize} className="text-xs bg-blue-500 text-white px-2 py-1 rounded">+ 新增</button>
                             </div>
                             
@@ -362,8 +366,8 @@ const App: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
-                            <button onClick={savePrizeConfig} className="w-full mt-3 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">儲存變更</button>
-                            <button onClick={() => {resetPrizesToDefault(); setPrizesList(getActivePrizes()); alert("已重置為預設")}} className="w-full mt-2 text-gray-400 text-xs hover:text-red-500">恢復預設值</button>
+                            <button onClick={savePrizeConfig} className="w-full mt-3 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">儲存變更 (Sync to All)</button>
+                            <button onClick={() => {resetPrizesToDefault();}} className="w-full mt-2 text-gray-400 text-xs hover:text-red-500">恢復預設值</button>
                         </div>
                     </div>
                 </div>
@@ -388,7 +392,7 @@ const App: React.FC = () => {
         nickname={nickname}
       />
       
-      {/* Footer Decoration (moved to background) */}
+      {/* Footer Decoration */}
       <div className="fixed bottom-0 left-0 w-full h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-0" />
     </div>
   );
